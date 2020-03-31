@@ -1,0 +1,388 @@
+<!DOCTYPE HTML>
+<!--
+	Graph Visualiser & Dijkstra/Prim/Krusakal Solver in JavaScript
+	https://github.com/ammaraslam10/Graph-Visualiser-Dijkstra-Prim-Krusakal-Solver-in-JavaScript | @ammaraslam10
+	IDK I selected a licence randomly uwu
+-->
+<html>
+	<head>
+		<title>Graph Visualiser & Dijkstra/Prim/Krusakal Solver in JavaScript</title>
+		<script src="pjs.js"></script>
+		<style>
+			.other {
+				font-family: verdana; font-size: 13px; padding-left: 10px; padding-top: 10px;
+			}
+		</style>
+		<script>
+			// Globals
+			var nodes = []; 
+			var matrix = [];
+			var infinite = 100000, input = 0, input2 = 0; 
+		</script>
+		<script type="text/processing" data-processing-target="mycanvas">
+
+
+			/*
+				PJS code doesn't work in files when not compiled so i'll leave this as it is here
+			*/
+			var clicking = false;
+			var clickedNode = -1, weight = [];
+			var solution = infinite;
+
+			// Size of the visible container
+			var CW = 570, CH = 300; 
+			var norm = loadFont("Arial"), bold = loadFont("Arial Bold");
+			var dij = [], prim = [], kru = [];
+
+			void setup() {
+				size(CW+100,CH+100);
+				background(125);
+				fill(255);
+				redraw();
+				textFont(norm, 14);  
+			}
+			// Whatever's on the screen, comes from here
+			// Except for the matrix input
+			void draw(){
+			 	background(255);
+				fill(255, 46, 46);
+			    	stroke(133, 68, 68);
+			    	rect(10,10,100,30);
+			    	rect(10,360,100,30);
+			    	rect(120,360,100,30);
+			    	rect(230,360,100,30);
+
+			    	rect(225,12,10,10);
+			    	rect(225,28,10,10);
+			    	if(clickedNode === -2) { 
+					rect(320,28,10,10); 
+				}
+				fill(255, 255, 255);
+				text("Add Node", 30, 30);
+				text("Dijksta’s algo", 20, 380);
+				text("Prim’s algo", 137, 380);
+				text("Kruskal’s algo", 237, 380);
+
+				text("+", 226.5, 21.5);
+				text("+", 226.5, 37.5);
+				if(clickedNode === -2) { text("+", 321, 37.5); }
+				fill(0, 0, 0); 
+				text("Source Index: " + input, 120, 23);
+				text("Destin. Index: " + input2, 120, 38);
+				fill(255, 255, 255);
+				stroke(0,0,0);
+				rect(10, 50, CW, CH);
+				fill(46, 166, 160);
+				stroke(22, 89, 86);
+				strokeWeight(3); var nodeSel = false;
+			    	for(var i = 0; i < nodes.length; i++) {
+			        	if(clicking || clickedNode === i || 
+			        	(clickedNode === -2 && (weight[0] === i || weight[1] === i))) { 
+						stroke(0, 0, 0); 
+					} else { 
+						stroke(0, 48, 107); 
+					}
+			        ellipse(nodes[i][0], nodes[i][1], 40, 40);
+				textFont(bold, 15);
+			        
+				fill(14, 56, 54);
+
+				text(i, nodes[i][0]-5, nodes[i][1]-5);
+			        
+				textFont(norm);
+				fill(46, 166, 160);
+
+			        if(mouseX >= nodes[i][0]-20 && mouseX <= (nodes[i][0]+20) && 
+			        mouseY >= nodes[i][1]-20 && mouseY <= (nodes[i][1]+20) && !nodeSel) { 
+					nodes[i][2] = true; 
+					nodeSel= true; 
+				} else { 
+					nodes[i][2] = false; 
+				}
+			        stroke(22, 89, 86);
+			    }
+			    if(solution !== infinite) {
+			        if(kru.length) { matrix = kru; }
+			        if(prim.length) { matrix = prim; }
+			    }
+			    textFont(bold, 15);
+			    for(var i = 0; i < matrix.length; i++) {
+			        for(var j = 0; j < matrix[i].length; j++) {
+			            stroke(0, 89, 86);
+			            if(matrix[i][j] !== infinite) { 
+			                if(solution === infinite || !dij.length) {
+			                    text(matrix[i][j], (nodes[i][0] + nodes[j][0])/2,
+			                    (nodes[i][1] + nodes[j][1])/2);
+			                } 
+					var dir = Math.atan2(nodes[i][1]-nodes[j][1], nodes[i][0]-nodes[j][0]);
+			                line(nodes[i][0] - 20 * Math.cos(dir), nodes[i][1] - 20 * Math.sin(dir), nodes[j][0] + 20 * Math.cos(dir), nodes[j][1] + 20 * Math.sin(dir)); 
+			                strokeWeight(10); point(nodes[j][0] + 20 * Math.cos(dir), nodes[j][1] + 20 * Math.sin(dir)); strokeWeight(3);
+			            }
+			        }
+			        if(solution !== infinite) {
+			            if(dij.length && dij[i] !== infinite) { 
+			                text(dij[i], nodes[i][0] - 35, nodes[i][1] + 3);              
+			            }
+			        }
+			    }
+			    textFont(norm);
+			    
+			    if(solution !== infinite && dij.length) {
+			    	text("Distance from " + input + " to " + input2 + ":", 20, 340);
+			        text(solution, 140, 340);
+			    }
+			    if(clickedNode === -2) {
+			        text("Weight: " + matrix[weight[0]][weight[1]], 250, 38);
+			        stroke(0,0,0);
+				var dir = Math.atan2(nodes[weight[0]][1]-nodes[weight[1]][1], nodes[weight[0]][0]-nodes[weight[1]][0]);
+			        line(nodes[weight[0]][0] - 20 * Math.cos(dir), nodes[weight[0]][1] - 20 * Math.sin(dir), 
+			        nodes[weight[1]][0] + 20 * Math.cos(dir), nodes[weight[1]][1] + 20 * Math.sin(dir)); 
+		                strokeWeight(10); point(nodes[weight[1]][0] + 20 * Math.cos(dir), nodes[weight[1]][1] + 20 * Math.sin(dir)); strokeWeight(3);
+			        stroke(0, 89, 86);
+			    } 
+			    else if(clickedNode !== -1) {
+			        text("Selected node: " + clickedNode, 250, 22);
+			    }
+			    strokeWeight(1);
+			};
+			void mousePressed() { 
+			    clicking = true; var state = true;
+			    if(mouseX >= 320 && mouseX <= 320 + 10 && mouseY >= 28 && mouseY <= 28 + 10) {
+			        if(clickedNode === -2) { matrix[weight[0]][weight[1]]++; return; } 
+			    }    
+			    for(var i = 0; i < nodes.length; i++) { 
+			        if(nodes[i][2]) { 
+			            if(clickedNode >= 0 && clickedNode !== i) {
+			                if(matrix[clickedNode][i] === infinite) { 
+						matrix[clickedNode][i] = 1; 
+					}
+			                weight = [clickedNode, i]; clickedNode = -2; state = false;
+			            } else { 
+					clickedNode = i; 
+					state = false; 
+				    } 
+			        } 
+			    } 
+			    if(state) { clickedNode = -1; }
+			};
+			var inSet = function(u, S) {
+			    for(var i = 0; i < S.length; i++) { 
+			        if(S[i] === u) 
+				    return true; 
+			    }
+			    return false;
+			};
+			var directed = function(matrix) {
+			    // Converting to directed
+			    for(var i = 0; i < matrix.length; i++) {
+			        for(var j = 0; j < matrix.length; j++) {
+			            if(matrix[i][j] !== matrix[j][i]) { 
+			                if(matrix[i][j] === infinite) { matrix[i][j] = matrix[j][i]; }
+			                else if(matrix[j][i] === infinite) { matrix[j][i] = matrix[i][j]; }
+			                else if(matrix[i][j] > matrix[j][i]) { matrix[j][i] = matrix[i][j]; }
+			                else { matrix[i][j] = matrix[j][i]; }
+			            }
+			        }
+			    }
+			    return matrix;
+			};
+			var circut = function(edge, from, visited) {
+			    var loopgph = false; if(from.length <= 2) { return false; }
+			    if(visited.constructor === Array) { visited.push(edge); }  else { return false; }
+			    var it = 0; var allZ = 1;
+			    while(visited.length !== from.length && !loopgph && it < 10) { //it++;
+			        if(it >= 9) { return visited; }
+			        for(var i = 0; i < from.length; i++) {
+			            if(from[edge][i] !== infinite) { allZ = 0; }
+			            //println("checking " + i + " from " + edge);
+			            var inVisited = false;
+			            for(var j = 0; j < visited.length; j++) {
+			                if(i === visited[j] || i === edge) {
+			                    inVisited = true; break;
+			                }
+			            }
+			            if(!inVisited) {
+			                //println(edge + ".");
+			                // adjancency
+			                if(from[i][edge] !== infinite) {
+			                    // connection w/ visited
+			                    var nCon = 0;
+			                    for(var j = 0; j < visited.length; j++) {
+			                        if(from[i][visited[j]] !== infinite)
+			                        {
+			                            //println("ncon " + visited[j] + " " +from[i][visited[j]]);
+			                            nCon++;  
+			                        }
+			                    }
+			                    if(nCon > 1) return true;
+			                    //println(visited+"........");
+			                    visited = circut(i, from, visited); 
+			                    if(visited === true) { return true; }
+			                }
+			            }
+			        }
+			        if(allZ && edge < from.length) { visited = circut(edge+1, from, visited); }
+			        return visited;
+			    }
+			    //println(visited + "");
+			    return false;
+			};
+			void mouseClicked() {
+			    // Check for Add Node
+			    if(mouseX >= 10 && mouseX <= 100 + 10 && mouseY >= 10 && mouseY <= 30 + 10) {
+				nodes.push(new Array(3));
+			        nodes[nodes.length - 1][0] = random(30, CW);
+			        nodes[nodes.length - 1][1] = random(90, CH);
+			        nodes[nodes.length - 1][2] = false;
+			        matrix.push(new Array(matrix.length)); //matrix[matrix.length - 1].push();
+			        for(var i = 0; i < matrix.length; i++) { 
+			            matrix[i].push(infinite); matrix[matrix.length - 1][i] = infinite;
+			        }   
+			    } 
+			    if(mouseX >= 225 && mouseX <= 255 + 10 && mouseY >= 12 && mouseY <= 12 + 10) {
+			        if(input + 1 < matrix.length) { input++; } else { input = 0; }
+			    }    
+			    if(mouseX >= 225 && mouseX <= 255 + 10 && mouseY >= 28 && mouseY <= 28 + 10) {
+			        if(input2 + 1 < matrix.length) { input2++; } else { input2 = 0; }
+			    }    
+			    // Dijkstra click
+			    if(mouseX >= 10 && mouseX <= 100 + 10 && mouseY >= 360 && mouseY <= 30 + 360) {
+			        dij = new Array(matrix.length); prim = []; kru = [];
+			        //matrix = directed(matrix);
+			        for(var i = 0; i < matrix.length; i++) { dij[i] = infinite; }
+			        dij[input] = 0;
+			        var temp = [];
+			        while(temp.length !== dij.length) {
+			            var min = infinite + 1; var picked = -1;
+			            for(var i = 0; i < dij.length; i++) {
+			                if(dij[i] < min && !inSet(i, temp)) { min = dij[i]; picked = i; }
+			            }
+			            temp.push(picked);
+			            for(var i = 0; i < dij.length; i++) {
+			                if(!inSet(i, temp) && dij[picked] + matrix[picked][i] < dij[i]) {
+			                    dij[i] = dij[picked] + matrix[picked][i];
+			                }
+			            }
+			        }
+			        solution = dij[input2];
+			    }
+			    // Prim click
+			    if(mouseX >= 120 && mouseX <= 120+100 && mouseY >= 360 && mouseY <= 360+30) {
+			        var temp = []; prim = []; dij = []; kru = []; var minx = 0, miny = 0;
+			        for(var i = 0; i < matrix.length; i++) { prim.push(new Array(matrix.length));
+			        for(var j = 0; j < matrix.length; j++) { prim[i][j] = infinite; 
+			        if(matrix[minx][miny] > matrix[i][j]) { minx = i; miny = j; } } }
+			        prim[minx][miny] = matrix[minx][miny]; prim[miny][minx] = matrix[minx][miny];
+			        // sort in temp
+			        matrix = directed(matrix); var last = -1*infinite;
+			        for (var i = 0; i < matrix.length; i++) { temp.push(matrix[i].slice()); }
+			        for(var j = 0; j < temp.length; j++) {
+			            for(var k = 0; k < temp.length; k++) {
+			                minx = j; miny = k;
+			                for(var t = 0; t < temp.length; t++) {
+			                    for(var u = 0; u < temp.length; u++) {
+			                       if(temp[minx][miny] >= temp[t][u]) {
+			                            for(var m = 0; m < prim.length; m++) {
+			                                if(prim[t][m] !== infinite) { minx = t; miny = u; break; }
+			                            }
+			                       }
+			                    }
+			                }
+			                temp[minx][miny] = infinite; //temp[miny] = infinite;
+			                //println(minx + " " + miny);
+			                if(matrix[minx][miny] !== infinite && minx !== miny) {
+			                    prim[minx][miny] = matrix[minx][miny]; 
+			                    prim[miny][minx] = matrix[minx][miny];
+			                    if(circut(input, prim, []) === true) {
+			                        prim[minx][miny] = infinite; prim[miny][minx] = infinite;
+			                    } 
+			                }    
+			            }
+			        }
+			        solution = 1;
+			    }
+			    // Kruskal click
+			    if(mouseX >= 230 && mouseX <= 230+100 && mouseY >= 360 && mouseY <= 360+30) {
+			        var temp = []; kru = []; prim = []; dij = [];
+			        for(var i = 0; i < matrix.length; i++) { kru.push(new Array(matrix.length));
+			        for(var j = 0; j < matrix.length; j++) { kru[i][j] = infinite; } }
+			        // sort in temp
+			        matrix = directed(matrix); var last = -1*infinite;
+			        for (var i = 0; i < matrix.length; i++) { temp.push(matrix[i].slice()); }
+			        for(var j = 0; j < temp.length; j++) {
+			            for(var k = 0; k < temp.length; k++) {
+			                var minx = j, miny = k;
+			                for(var t = 0; t < temp.length; t++) {
+			                    for(var u = 0; u < temp.length; u++) {
+			                       if(temp[minx][miny] >= temp[t][u]) {
+			                            minx = t; 
+			                            miny = u; 
+			                       }
+			                    }
+			                }
+			                temp[minx][miny] = infinite; //temp[miny] = infinite;
+			                //println(minx + " " + miny);
+			                if(matrix[minx][miny] !== infinite && minx !== miny) {
+			                    kru[minx][miny] = matrix[minx][miny]; 
+			                    kru[miny][minx] = matrix[minx][miny];
+			                    if(circut(input, kru, []) === true) {
+			                        kru[minx][miny] = infinite; kru[miny][minx] = infinite;
+			                    } 
+			                }    
+			            }
+			        }
+			        solution = 1;
+			    }
+			};
+			void mouseDragged() {
+			    for(var i = 0; i < nodes.length && clicking; i++) {
+			        if(nodes[i][2]) {
+			            nodes[i][0] = mouseX;
+			            nodes[i][1] = mouseY;
+			        }
+			    }
+			    clickedNode = -1;
+			};
+			void mouseReleased() { clicking = false; };
+		</script>
+		<script>
+			var inputValues = function() {
+				infinite = parseInt(document.getElementById('inf').value);
+				var inp = parseInt(document.getElementById('src').value);
+				if(inp >= nodes.length) { inp = 0; }
+				input = inp;
+				input2 = parseInt(document.getElementById('dst').value);
+				for(var i = 0; i < matrix.length; i++) { 
+					for(var j = 0; j < matrix.length; j++) { 
+						matrix[i][j] = parseInt(document.getElementById('d'+i+''+j).value); 
+					} 
+				}
+			}
+			var update = function() {
+				var div = document.getElementById("other");
+				var op = "<table border='3' cellpadding='5' cellspacing='0'>";
+				for(var i = 0; i < nodes.length + 1; i++) {
+				     op += "<tr>";
+				     for(var j = 0; j < nodes.length + 1; j++) {
+				         if(i == 0 && j != 0) { op += "<th>" + (j-1) + "</th>"; } else if(j == 0 && i != 0) { op += "<th>" + (i-1) + "</th>"; } 
+				         else if(i == 0 && j == 0) { op += "<th></th>"; } else { op += "<td><input type='text' value='"+ matrix[i-1][j-1] +"' style='width:60px' id='d"+(i-1)+(j-1)+"'/></td>"; }
+				     }
+				     op += "</tr>";
+				}
+				op += "<tr>"; for(var j = 0; j < nodes.length + 1; j++) { op += "<td>"; }
+				op += "<input type='submit' value='Update' onclick=\"inputValues();\"></tr>";
+				op += "</table><br>";
+				op += "Infinity: <input type='text' placeholder='Infinity' id='inf' value='"+infinite+"'><br><br>";
+				op += "Source Node: <input type='text' placeholder='Source Node' id='src' value='"+input+"'><br><br>";
+				op += "Dest Node: <input type='text' placeholder='Destination Node' id='dst' value='"+input2+"'><br><br>";
+				op += "<input type='submit' value='Update' onclick=\"inputValues();\"> ";
+				other.innerHTML = op;
+			};
+
+		</script>
+	</head>
+	<body>
+		<canvas id="mycanvas" style="outline:none" onclick="update();"></canvas>
+		<div id="other" class="other"></div>
+	</body>
+</html>
